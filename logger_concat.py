@@ -1,5 +1,5 @@
 import os
-from pydub import AudioSegment as combine
+from pydub import AudioSegment
 from datetime import datetime, timedelta
 
 var LOGGER_LOCATION = "Network\10.0.0.210\Logger\audiohi"
