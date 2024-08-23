@@ -3,7 +3,7 @@ import shutil
 from pydub import AudioSegment
 from datetime import datetime, timedelta
 
-LOGGER_LOCATION: str = "Network\\10.0.0.210\Logger\\audiohi"
+LOGGER_LOCATION: str = r"Network\10.0.0.210\Logger\audiohi"
 TEMPORARY_LOCATION: str = "."
 
 def print_help():
@@ -25,7 +25,7 @@ def move_files(files):
         original_path = os.path.join(LOGGER_LOCATION, '\\', file)
         new_path      = os.path.join(TEMPORARY_LOCATION, '\\', file)
         shutil.move(original_path, new_path)
-        move_files.append(new_path)
+        moved_files.append(new_path)
         moved_files_index += 1
     return moved_files
 
@@ -61,7 +61,7 @@ def get_file_names(directory, start_time, end_time):
         
     return files_to_concat, linked_list
 
-def concatenate_audio_files(directory, files):
+def concatenate_audio_files(files):
     combined = AudioSegment.empty()
     for file in files:
         audio = AudioSegment.from_wav(os.path.join(directory, file))
@@ -74,48 +74,53 @@ if not os.path.exists(directory):
     print("ERROR: Cannot access the Logger folder. Is this being run on the right computer?\n")
     exit(1)
 
-while 1:
-    print(": ")
-    command = input().split()
-    match command[0]:
-        case "help":
-            print_help()
-        case "concatenate":
-            start_time, end_time = resolve_cli_input(command)
-            files_to_concat, linked_list = get_file_names(LOGGER_LOCATION, start_time, end_time)
-            print(f"Combining files from {start_time} to {end_time}\n")
-            for timestamp, filename in linked_list:
-                print(f"{timestamp}: {filename}\n")
-            printf("Moving files to temporary location...\n")
-            moved_files = move_files(linked_list.filename)
-            printf("Combining audio data...\n")
-            combined_audio = concatenate_audio_files(moved_files)
-            printf("Exporting final audio file...\n")
-            combined_audio.export(os.path.join(TEMPORARY_LOCATION, datetime.now, '.wav'), format="wav")
-            deleted_files = 1
-            printf("\n")
-            for file in moved_files:
-                printf(f"Deleting file {deleted_files}")
-                os.remove(file)
-                deleted_files += 1
-        case "logg":
-            files = [f for f in os.listdir(LOGGER_LOCATION) if f.endswith('.wav')]
-            if not files:
-                print("Could not access folder. Is this being run on the right computer?\n")
-            else:
-                file_list = []
-                for file in files:
-                    timestamp_str = file.split('.')[0]
-                    timestamp = datetime.strptime(timestamp_str, '%Y%m%d%H%M')
-                    file_list.append((timestamp, file))
-                file_list.sort()
+    while 1:
+        print(": ")
+        command = input().split()
+        if not command:
+            continue
+        match command[0]:
+            case "help":
+                print_help()
+            case "concatenate":
+                start_time, end_time = resolve_cli_input(command)
+                files_to_concat, linked_list = get_file_names(LOGGER_LOCATION, start_time, end_time)
+                print(f"Combining files from {start_time} to {end_time}\n")
+                for timestamp, filename in linked_list:
+                    print(f"{timestamp}: {filename}\n")
+                print("Moving files to temporary location...\n")
+                moved_files = move_files([f[1] for f in linked_list])
+                print("Combining audio data...\n")
+                combined_audio = concatenate_audio_files(moved_files)
+                output_filename = datetime.now().strftime('%Y%m%d%H%M') + '.wav'
+                print("Exporting final audio file...\n")
+                combined_audio.export(os.path.join(TEMPORARY_LOCATION, output_filename), format="wav")
+                deleted_files = 1
+                print("\n")
+                for file in moved_files:
+                    print(f"Deleting file {deleted_files}")
+                    os.remove(file)
+                    deleted_files += 1
+            case "logg":
+                files = [f for f in os.listdir(LOGGER_LOCATION) if f.endswith('.wav')]
+                if not files:
+                    print("Could not access folder. Is this being run on the right computer?\n")
+                else:
+                    file_list = []
+                    for file in files:
+                        timestamp_str = file.split('.')[0]
+                        timestamp = datetime.strptime(timestamp_str, '%Y%m%d%H%M')
+                        file_list.append((timestamp, file))
+                    file_list.sort()
 
-                earliest_file_time = file_list[0][0]
-                newest_file_time = file_list[-1][0]
+                    earliest_file_time = file_list[0][0]
+                    newest_file_time = file_list[-1][0]
 
-                print(f"Total files: {len(files)}\n")
-                print(f"Starting at {earliest_file_time}, and running through to {newest_file_time}\n")
-                print("NOTE: newest file may be incomplete, as the logger is continuously writing to this directory\n")
-        case "exit":
-            break
+                    print(f"Total files: {len(files)}\n")
+                    print(f"Starting at {earliest_file_time}, and running through to {newest_file_time}\n")
+                    print("NOTE: newest file may be incomplete, as the logger is continuously writing to this directory\n")
+            case "exit":
+                break
+            case _:
+                print(f"Invalid command. {command[0]} is not a valid command. Hint: type 'help' for a list of commands.")
 exit(0)
