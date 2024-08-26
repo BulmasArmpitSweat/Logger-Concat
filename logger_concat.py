@@ -3,8 +3,8 @@ import shutil
 from pydub import AudioSegment
 from datetime import datetime, timedelta
 
-LOGGER_LOCATION: str = r"Network\10.0.0.210\Logger\audiohi"
-TEMPORARY_LOCATION: str = "."
+LOGGER_LOCATION = r"Network\\10.0.0.210\\Logger\\audiohi"
+TEMPORARY_LOCATION = "."
 
 def print_help():
     print("Commands you can use:\n\n")
@@ -16,32 +16,36 @@ def print_help():
     print("         eg: from 23-08-2024 10:00 to 23-08-2024 13:00\n")
     print("    logg        | Print helpful information about the logger folder\n")
     print("    exit        | Exit the CLI interface, and thus the program")
+
 def move_files(files):
     moved_files_index = 1
     moved_files = []
     print("\n")
     for file in files:
         print(f"\rMoving file {moved_files_index}")
-        original_path = os.path.join(LOGGER_LOCATION, '\\', file)
-        new_path      = os.path.join(TEMPORARY_LOCATION, '\\', file)
-        shutil.move(original_path, new_path)
-        moved_files.append(new_path)
+        original_path = os.path.join(LOGGER_LOCATION, file)
+        new_path = os.path.join(TEMPORARY_LOCATION, file)
+        try:
+            shutil.move(original_path, new_path)
+            moved_files.append(new_path)
+        except Exception as e:
+            print(f"Error moving file {file}: {e}")
         moved_files_index += 1
     return moved_files
 
 def resolve_cli_input(command_array):
     start_time = None
     end_time = None
-    if (command_array[1] == 'from'):
+    if command_array[1] == 'from':
         start_time = datetime.strptime(command_array[2] + ' ' + command_array[3], '%d-%m-%Y %H:%M')
-        end_time   = datetime.strptime(command_array[5] + ' ' + command_array[6], '%d-%m-%Y %H:%M')
+        end_time = datetime.strptime(command_array[5] + ' ' + command_array[6], '%d-%m-%Y %H:%M')
     else:
         start_time = datetime.strptime(command_array[1] + ' ' + command_array[2], '%d-%m-%Y %H:%M')
-        end_time   = datetime.strptime(command_array[4] + ' ' + command_array[5], '%d-%m-%Y %H:%M')
+        end_time = datetime.strptime(command_array[4] + ' ' + command_array[5], '%d-%m-%Y %H:%M')
     return start_time, end_time
 
 def get_file_names(directory, start_time, end_time):
-    files = [f for f in os.listdir(LOGGER_LOCATION) if f.endswith('.wav')]
+    files = [f for f in os.listdir(directory) if f.endswith('.wav')]
     file_list = []
     for file in files:
         timestamp_str = file.split('.')[0]
@@ -61,7 +65,7 @@ def get_file_names(directory, start_time, end_time):
         
     return files_to_concat, linked_list
 
-def concatenate_audio_files(files):
+def concatenate_audio_files(files, directory):
     combined = AudioSegment.empty()
     for file in files:
         audio = AudioSegment.from_wav(os.path.join(directory, file))
@@ -70,11 +74,11 @@ def concatenate_audio_files(files):
 
 if __name__ == "__main__":
     directory = LOGGER_LOCATION
-if not os.path.exists(directory):
-    print("ERROR: Cannot access the Logger folder. Is this being run on the right computer?\n")
-    exit(1)
+    if not os.path.exists(directory):
+        print("ERROR: Cannot access the Logger folder. Is this being run on the right computer?\n")
+        exit(1)
 
-    while 1:
+    while True:
         print(": ")
         command = input().split()
         if not command:
@@ -84,14 +88,14 @@ if not os.path.exists(directory):
                 print_help()
             case "concatenate":
                 start_time, end_time = resolve_cli_input(command)
-                files_to_concat, linked_list = get_file_names(LOGGER_LOCATION, start_time, end_time)
+                files_to_concat, linked_list = get_file_names(directory, start_time, end_time)
                 print(f"Combining files from {start_time} to {end_time}\n")
                 for timestamp, filename in linked_list:
                     print(f"{timestamp}: {filename}\n")
                 print("Moving files to temporary location...\n")
-                moved_files = move_files([f[1] for f in linked_list])
+                moved_files = move_files(files_to_concat)
                 print("Combining audio data...\n")
-                combined_audio = concatenate_audio_files(moved_files)
+                combined_audio = concatenate_audio_files(moved_files, TEMPORARY_LOCATION)
                 output_filename = datetime.now().strftime('%Y%m%d%H%M') + '.wav'
                 print("Exporting final audio file...\n")
                 combined_audio.export(os.path.join(TEMPORARY_LOCATION, output_filename), format="wav")
@@ -99,10 +103,13 @@ if not os.path.exists(directory):
                 print("\n")
                 for file in moved_files:
                     print(f"Deleting file {deleted_files}")
-                    os.remove(file)
+                    try:
+                        os.remove(file)
+                    except Exception as e:
+                        print(f"Error deleting file {file}: {e}")
                     deleted_files += 1
             case "logg":
-                files = [f for f in os.listdir(LOGGER_LOCATION) if f.endswith('.wav')]
+                files = [f for f in os.listdir(directory) if f.endswith('.wav')]
                 if not files:
                     print("Could not access folder. Is this being run on the right computer?\n")
                 else:
@@ -123,4 +130,4 @@ if not os.path.exists(directory):
                 break
             case _:
                 print(f"Invalid command. {command[0]} is not a valid command. Hint: type 'help' for a list of commands.")
-exit(0)
+    exit(0)
