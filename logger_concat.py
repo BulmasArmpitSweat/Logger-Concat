@@ -19,8 +19,7 @@ def move_files(files):
     moved_files = []
     print("\n")
     for index, file in enumerate(files, start=1):
-        print(f"\rProcessing file {index}")
-        # Do not normalize network paths
+        print(f"\rProcessing file {index} ({file})", end="")
         original_path = os.path.join(LOGGER_LOCATION, file)
         if not os.path.exists(original_path):
             print(f"File {file} does not exist.")
@@ -41,9 +40,16 @@ def move_files(files):
                 shutil.move(original_path, new_path)
                 moved_files.append(new_path)
                 print(f"Moved {file} to {new_path}")
+            except PermissionError:
+                try:
+                    shutil.copy2(original_path, new_path)  # Use copy instead of move
+                    moved_files.append(new_path)
+                except Exception as e:
+                    print(f"Error copying file {file}: {e}")
             except Exception as e:
                 print(f"Error moving file {file}: {e}")
     return moved_files
+
 
 
 def resolve_cli_input(command_array):
@@ -91,10 +97,14 @@ def get_file_names(directory, start_time, end_time):
 
 def concatenate_audio_files(files, directory):
     combined = AudioSegment.empty()
+    num_files = len(files)
+    num_added = 1
     for file in files:
         try:
             audio = AudioSegment.from_wav(os.path.join(directory, file))
             combined += audio
+            print(f"\radded file {num_added} of {num_files}", end="")
+            num_added += 1
         except Exception as e:
             print(f"Error processing file {file}: {e}")
     return combined
@@ -120,23 +130,22 @@ if __name__ == "__main__":
             if not files_to_concat:
                 print("No files found to concatenate.")
                 continue
-            print(f"Combining files from {start_time} to {end_time}\n")
-            for timestamp, filename in linked_list:
-                print(f"{timestamp}: {filename}\n")
-            print("Moving files to temporary location...\n")
+            print(f"Combining files from {start_time} to {end_time}\n", end="")
+            print("Moving files to temporary location...\n", end="")
             moved_files = move_files(files_to_concat)
-            print("Combining audio data...\n")
+            print("\nCombining audio data...\n", end="")
             combined_audio = concatenate_audio_files(moved_files, TEMPORARY_LOCATION)
             output_filename = datetime.now().strftime('%Y%m%d%H%M') + '.wav'
-            print("Exporting final audio file...\n")
+            print("\nExporting final audio file...\n", end="")
             combined_audio.export(os.path.join(TEMPORARY_LOCATION, output_filename), format="wav")
-            print("Deleting files...\n")
+            print("\nDeleting files...\n")
             for deleted_files, file in enumerate(moved_files, start=1):
-                print(f"Deleting file {deleted_files}")
+                print(f"\rDeleting file {deleted_files}", end="")
                 try:
                     os.remove(file)
                 except Exception as e:
                     print(f"Error deleting file {file}: {e}")
+            print("\n", end="")
         elif command[0] == "logg":
             files = [f for f in os.listdir(directory) if f.endswith('.wav')]
             if not files:
