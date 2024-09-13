@@ -20,12 +20,12 @@ def move_files(files):
     print("\n")
     for index, file in enumerate(files, start=1):
         print(f"\rProcessing file {index}")
-        original_path = os.path.join(LOGGER_LOCATION, file)
+        original_path = os.path.normpath(os.path.join(LOGGER_LOCATION, file))
         if not os.path.exists(original_path):
             print(f"File {file} does not exist.")
             continue
 
-        new_path = os.path.join(TEMPORARY_LOCATION, file)
+        new_path = os.path.normpath(os.path.join(TEMPORARY_LOCATION, file))
         if file.endswith(".mp3"):
             try:
                 audio = AudioSegment.from_mp3(original_path)  # Load the .mp3 file
@@ -39,6 +39,7 @@ def move_files(files):
             try:
                 shutil.move(original_path, new_path)
                 moved_files.append(new_path)
+                print(f"Moved {file} to {new_path}")
             except Exception as e:
                 print(f"Error moving file {file}: {e}")
     return moved_files
