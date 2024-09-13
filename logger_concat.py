@@ -19,17 +19,28 @@ def move_files(files):
     moved_files = []
     print("\n")
     for index, file in enumerate(files, start=1):
-        print(f"\rMoving file {index}")
+        print(f"\rProcessing file {index}")
         original_path = os.path.join(LOGGER_LOCATION, file)
-        new_path = os.path.join(TEMPORARY_LOCATION, file)
         if not os.path.exists(original_path):
             print(f"File {file} does not exist.")
             continue
-        try:
-            shutil.move(original_path, new_path)
-            moved_files.append(new_path)
-        except Exception as e:
-            print(f"Error moving file {file}: {e}")
+
+        new_path = os.path.join(TEMPORARY_LOCATION, file)
+        if file.endswith(".mp3"):
+            try:
+                audio = AudioSegment.from_mp3(original_path)  # Load the .mp3 file
+                new_path = new_path.replace(".mp3", ".wav")  # Change extension to .wav
+                audio.export(new_path, format="wav")  # Convert to .wav and save
+                moved_files.append(new_path)
+                print(f"Converted {file} to {new_path}")
+            except Exception as e:
+                print(f"Error converting {file}: {e}")
+        elif file.endswith(".wav"):
+            try:
+                shutil.move(original_path, new_path)
+                moved_files.append(new_path)
+            except Exception as e:
+                print(f"Error moving file {file}: {e}")
     return moved_files
 
 def resolve_cli_input(command_array):
