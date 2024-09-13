@@ -20,12 +20,13 @@ def move_files(files):
     print("\n")
     for index, file in enumerate(files, start=1):
         print(f"\rProcessing file {index}")
-        original_path = os.path.normpath(os.path.join(LOGGER_LOCATION, file))
+        # Do not normalize network paths
+        original_path = os.path.join(LOGGER_LOCATION, file)
         if not os.path.exists(original_path):
             print(f"File {file} does not exist.")
             continue
 
-        new_path = os.path.normpath(os.path.join(TEMPORARY_LOCATION, file))
+        new_path = os.path.join(TEMPORARY_LOCATION, file)
         if file.endswith(".mp3"):
             try:
                 audio = AudioSegment.from_mp3(original_path)  # Load the .mp3 file
@@ -43,6 +44,7 @@ def move_files(files):
             except Exception as e:
                 print(f"Error moving file {file}: {e}")
     return moved_files
+
 
 def resolve_cli_input(command_array):
     try:
