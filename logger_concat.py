@@ -3,7 +3,7 @@ import shutil
 from pydub import AudioSegment
 from datetime import datetime, timedelta
 
-LOGGER_LOCATION = r"Network\\10.0.0.210\\Logger\\audiohi"
+LOGGER_LOCATION = r"\\10.0.0.210\Logger\audiohi"
 TEMPORARY_LOCATION = "."
 
 def print_help():
